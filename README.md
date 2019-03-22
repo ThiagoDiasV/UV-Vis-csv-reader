@@ -17,5 +17,5 @@ spectroscopy in Savizty-Golay values.
 ![image](https://user-images.githubusercontent.com/42140919/54848496-2c2ba380-4cc0-11e9-9fdb-94e44ffb36ad.png)
 
 ## TODO
-- [ ] Adjust delta lambda conditions
-- [ ] Create new features do different values of derivative order etc.
+- [ ] Adjust delta lambda conditions, it's only doing delta lambda = 3 derivative.
+- [ ] Create new features to different values of derivative order etc.
