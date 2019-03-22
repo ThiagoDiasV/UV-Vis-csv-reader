@@ -38,7 +38,7 @@ def date_today():
     return date_today
 
 
-def create_dicts(files, window_length=11, polyorder=2):
+def create_dicts(files, window_length, polyorder, deriv, delta):
     '''
     Creates three dicts with absorbances values and a list with wavelength
     values. The first dict (files_dict) has the read values.
@@ -66,18 +66,27 @@ def create_dicts(files, window_length=11, polyorder=2):
 
         wavelength_list = list(set(df['nm']))
         files_dict[file_name] = list(df['A'].values)
-        savgol_dict[file_name] = savgol_filter(list(df['A'].values), 11, 2)
+        savgol_dict[file_name] = savgol_filter(
+                                               list(df['A'].values),
+                                               window_length,
+                                               polyorder
+                                               )
 
-        abs_list_sav = savgol_filter(df['A'].values, 11, 2).tolist()
-        partial_results = dict(zip(wavelength_list, abs_list_sav))
-        deriv_dict[file_name] = list(
-                                     create_derivatives(
-                                                        **{
-                                                           str(k): v
-                                                           for k, v
-                                                           in partial_results.items()}
-                                                        )
-                                    )
+        if deriv != 0:
+            abs_list_sav = savgol_filter(
+                                        df['A'].values,
+                                        window_length,
+                                        polyorder
+                                        ).tolist()
+            partial_results = dict(zip(wavelength_list, abs_list_sav))
+            deriv_dict[file_name] = list(
+                                         create_derivatives(delta,
+                                                            **{
+                                                               str(k): v
+                                                               for k, v
+                                                               in partial_results.items()}
+                                                            )
+                                        )
     return (wavelength_list, files_dict, savgol_dict, deriv_dict)
 
 
@@ -96,7 +105,7 @@ def create_derivatives(deriv_delta=3, **partial_results):
             derivative_dict[wavelength] = ((absorbances[index + deriv_delta] -
                                             absorbances[index]) /
                                            (deriv_delta)) * 1/2
-        elif index + deriv_delta > (wv_list[-1] - wv_list[0])/3:
+        elif index + deriv_delta > (wv_list[-1] - wv_list[0])/deriv_delta:
             derivative_dict[wavelength] = ((absorbances[index] -
                                             absorbances[index - deriv_delta]) /
                                            (deriv_delta)) * 1/2
@@ -130,7 +139,9 @@ def create_worksheet(workbook, workbook_name, cat_calc, chart_subtype,
     # workbook_name    -> the name the user typed when using the program
     # cat_calc         -> the category of the data. If the worksheet is the
     worksheet with data from Savitzky-Golay values, the argument is '_sav_gol'.
-    If the worksheet is the derivative worksheet, this argument is '_deriv'
+    If the worksheet is the derivative worksheet, this argument is '_deriv'.
+    If the worksheet is the worksheet with derivative spectroscopy, this
+    argument is '_spectro_deriv'.
     # chart_subtype    -> the subtype value of chart. The options are
     'straight' or 'smooth'
     # deriv            -> a boolean parameter to define if will be made the
@@ -179,9 +190,12 @@ def create_worksheet(workbook, workbook_name, cat_calc, chart_subtype,
     col = 0
     if deriv:
         abs_list = []
-        wavelength_list = [i for i in wavelength_list if i % 3 == remainder]
+        wavelength_list = [
+                           i for i in wavelength_list
+                           if i % delta == remainder
+                           ]
         for values in files_dict.values():
-            abs_list.append(list(values)[init_deriv::3])
+            abs_list.append(list(values)[init_deriv::delta])
         worksheet.write_column(row, col, wavelength_list)
         col += 1
         for ab in abs_list:
@@ -229,18 +243,23 @@ def workbook_launcher(workbook):
 print('#'*20, 'Compilador de .csv do GENESYS 10S UV-Vis', '#'*20)
 workbook_name = str(input('Digite um nome para a planilha (.xlsx): '))
 files = acquire_files()
-print('Você quer mudar os parâmetros de Saviztky-Golay?')
+print('Você quer mudar os parâmetros de Saviztky-Golay ou não derivar?')
 print('Por default, os parâmetros são: ')
 print('Window length: 11\nPolyorder: 2\nDerivada: 1\nDelta: 3.0')
 op_savgol = str(input('Digite "S" (sem aspas) se sim: ')).strip().upper()
 if op_savgol == 'S':
     window_length = int(input('Window length (Inteiro positivo ímpar): '))
     polyorder = int(input('Polyorder (2, 3 ou 4): '))
-    deriv = int(input('Derivada (Ordem da derivação): '))
-    delta = float(input('Delta (Intervalo de comprimento de onda): '))
-    data = create_dicts(files, window_length, polyorder, deriv, delta)
+    deriv = int(input('Ordem da derivação. '
+                      '0 para não derivar. '
+                      'Inteiro maior que 0: '))
+    if deriv != 0:
+        delta = float(input('Delta (Intervalo de comprimento de onda): '))
+    else:
+        delta = None
 else:
-    data = create_dicts(files)
+    window_length, polyorder, deriv, delta = (11, 2, 1, 3)
+data = create_dicts(files, window_length, polyorder, deriv, delta)
 
 print('Aguarde sua planilha ser preparada...')
 
@@ -259,28 +278,28 @@ for i in range(6):
                          '_sav_gol', 'smooth', False, None, None, None,
                          *data[0], **data[2]
                          )
-    elif i == 2:
+    elif i == 2 and deriv != 0:
         create_worksheet(
                          workbook, workbook_name,
                          '_deriv', 'smooth', False, None, None, None,
                          *data[0], **data[3]
                          )
-    elif i == 3:
+    elif i == 3 and deriv != 0:
         create_worksheet(
                          workbook, workbook_name,
-                         f'_deriv{i-2}', 'smooth', True, 2, 0, 3,
+                         f'_spectro_deriv{i-2}', 'smooth', True, 2, 0, 3,
                          *data[0], **data[3]
                          )
-    elif i == 4:
+    elif i == 4 and deriv != 0:
         create_worksheet(
                          workbook, workbook_name,
-                         f'_deriv{i-2}', 'smooth', True, 0, 1, 3,
+                         f'_spectro_deriv{i-2}', 'smooth', True, 0, 1, 3,
                          *data[0], **data[3]
                          )
-    elif i == 5:
+    elif i == 5 and deriv != 0:
         create_worksheet(
                          workbook, workbook_name,
-                         f'_deriv{i-2}', 'smooth', True, 1, 2, 3,
+                         f'_spectro_deriv{i-2}', 'smooth', True, 1, 2, 3,
                          *data[0], **data[3]
                          )
 workbook.close()
