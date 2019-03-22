@@ -241,6 +241,7 @@ def workbook_launcher(workbook):
 
 # Init
 print('#'*20, 'Compilador de .csv do GENESYS 10S UV-Vis', '#'*20)
+print('OBS: AINDA NÃO FAZ DERIVAÇÃO COM DELTA LAMBDA DIFERENTE DE 3!!!')
 workbook_name = str(input('Digite um nome para a planilha (.xlsx): '))
 files = acquire_files()
 print('Você quer mudar os parâmetros de Saviztky-Golay ou não derivar?')
@@ -265,6 +266,7 @@ print('Aguarde sua planilha ser preparada...')
 
 workbook = create_workbook(workbook_name)
 
+# Ajustar este bloco de código abaixo para algo mais funcional
 for i in range(6):
     if i == 0:
         create_worksheet(

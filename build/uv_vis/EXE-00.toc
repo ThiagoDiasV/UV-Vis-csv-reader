@@ -51,7 +51,7 @@
  [],
  False,
  False,
- 1553281634,
+ 1553285703,
  [('run.exe',
    'c:\\users\\ufc\\pycharmprojects\\uv\\uv_venv\\lib\\site-packages\\PyInstaller\\bootloader\\Windows-32bit\\run.exe',
    'EXECUTABLE')])
