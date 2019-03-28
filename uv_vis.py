@@ -133,7 +133,7 @@ def create_worksheet(workbook, workbook_name, cat_calc, chart_subtype,
                      deriv=False, remainder=None, init_deriv=None,
                      delta=None, *wavelength_list, **files_dict):
     '''
-    The function in charge to write the worksheets inside the workbook.
+    The function is in charge to write the worksheets inside the workbook.
     The parameters are:
     # workbook         -> the created workbook
     # workbook_name    -> the name the user typed when using the program
